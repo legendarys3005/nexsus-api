@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import admin from "firebase-admin";
+import admin, { messaging } from "firebase-admin";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
@@ -22,6 +22,11 @@ const pendingRequest = [];
 app.post("/delete-account", async (req, res) => {
     const { email, password } = req.body;
     console.log("Delete request received for:", email);
+
+    const exists = pendingRequest.some(item => item.email === email);
+    if(exists){
+        return res.status(400).json({message: "A deletion request for this email is already pending."})
+    }
     const result = await verifyUser(email, password);
     console.log("isverified: ", result.verified, "\nreason: ", result.reason);
 
