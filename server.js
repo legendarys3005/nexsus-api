@@ -106,16 +106,52 @@ async function verifyUser(email, password){
 
 async function deleteUser(email){
     try{
+        //Fetching user details
         const userRecord = await admin.auth().getUserByEmail(email);
         const uid = userRecord.uid;
         console.log("Deleting user id: ", uid);
 
+        //Deleting auth user
         await admin.auth().deleteUser(uid);
         console.log("Deleted user: ", email);
-
+        
+        //Deleting user data
         const userDocRef = db.collection("Users").doc(uid);
         await userDocRef.delete();
         console.log("Deleted data");
+
+        //Deleting user orders
+        const orderSnap = await db.collection("Orders").where("User.Id", "==", uid).get();
+        const deleteOrderList = [];
+        orderSnap.forEach((doc) => {
+            deleteOrderList.push(db.collection("Orders").doc(doc.id).delete());
+        });
+        await Promise.all(deleteOrderList);
+        console.log(`Deleted ${deleteOrderList.length} orders`);
+
+        //Deleting user order requests
+        const requestSnap = await db.collection("Requests").where("SenderId", "==", uid).get();
+        const deleteRequestList = [];
+        requestSnap.forEach((doc) => {
+            deleteRequestList.push(db.collection("Requests").doc(doc.id).delete());
+        });
+        await Promise.all(deleteRequestList);
+        console.log(`Deleted ${deleteRequestList.length} order request`);
+
+        //Deleting User Reviews
+        const productSnapshot = await db.collection("Products").get();
+        const deleteReviewList = [];
+        for(const productDoc of productSnapshot.docs){
+            const reviewRef = productDoc.ref.collection("Reviews");
+            const reviewSnap = await reviewRef.where("UserId", "==", uid).get();
+
+            reviewSnap.forEach((doc) => {
+                deleteReviewList.push(doc.ref.delete());
+            });
+            console.log(`Deleted ${deleteReviewList.length} reviews from product ${productDoc.id}`);
+        }
+
+        await Promise.all(deleteReviewList);
         return true;
     }catch(e){
         console.log(e);
