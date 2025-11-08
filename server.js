@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import admin, { messaging } from "firebase-admin";
+import admin from "firebase-admin";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
